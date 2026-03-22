@@ -148,6 +148,15 @@ def get_all_user_ids() -> list[int]:
         return [r[0] for r in rows]
 
 
+def get_all_users() -> list[User]:
+    """Return all users ordered by join date (newest first)."""
+    with get_db() as db:
+        users = db.query(User).order_by(User.created_at.desc()).all()
+        for u in users:
+            db.expunge(u)
+        return users
+
+
 def get_stats() -> dict:
     """Return system-wide stats for the admin dashboard."""
     today = date.today()

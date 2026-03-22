@@ -19,6 +19,7 @@ from telegram.ext import (
 
 from database.crud import (
     get_all_user_ids,
+    get_all_users,
     get_stats,
     get_user,
     get_user_by_username,
@@ -27,7 +28,8 @@ from database.crud import (
 
 logger = logging.getLogger(__name__)
 
-ADMIN_ID: int = int(os.environ.get("ADMIN_TELEGRAM_ID", "0"))
+def _get_admin_id() -> int:
+    return int(os.environ.get("ADMIN_TELEGRAM_ID", "0"))
 
 # ---------------------------------------------------------------------------
 # Conversation states
@@ -49,6 +51,7 @@ ADMIN_ID: int = int(os.environ.get("ADMIN_TELEGRAM_ID", "0"))
 def _dashboard_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📊 View Stats",          callback_data="adm_stats")],
+        [InlineKeyboardButton("👥 List All Users",      callback_data="adm_list_users")],
         [InlineKeyboardButton("👤 Manage User",         callback_data="adm_manage")],
         [InlineKeyboardButton("🚫 Ban / Unban User",    callback_data="adm_ban")],
         [InlineKeyboardButton("📢 Broadcast Message",   callback_data="adm_broadcast")],
@@ -67,7 +70,7 @@ def _back_kb() -> InlineKeyboardMarkup:
 # ---------------------------------------------------------------------------
 
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.effective_user.id != ADMIN_ID:
+    if update.effective_user.id != _get_admin_id():
         await update.message.reply_text("Command not found.")
         return ConversationHandler.END
 
@@ -104,6 +107,28 @@ async def admin_stats_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         f"🆕 Joined today:      *{s['users_today']}*\n"
         f"🍽 Meals today:       *{s['meals_today']}*\n"
         f"🚫 Banned users:      *{s['banned_users']}*",
+        parse_mode="Markdown",
+        reply_markup=_back_kb(),
+    )
+    return ADMIN_DASHBOARD
+
+
+async def admin_list_users_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    users = get_all_users()
+    if not users:
+        await query.edit_message_text("No users yet.", reply_markup=_back_kb())
+        return ADMIN_DASHBOARD
+
+    lines = []
+    for u in users:
+        status = "🚫" if not u.is_active else "✅"
+        username = f"@{u.username}" if u.username else "no username"
+        lines.append(f"{status} `{u.id}` — {username} — {u.goal}")
+
+    await query.edit_message_text(
+        f"👥 *All Users ({len(users)})*\n\n" + "\n".join(lines),
         parse_mode="Markdown",
         reply_markup=_back_kb(),
     )
@@ -287,8 +312,9 @@ def build_admin_handler() -> ConversationHandler:
         entry_points=[CommandHandler("admin", admin_command)],
         states={
             ADMIN_DASHBOARD: [
-                CallbackQueryHandler(admin_stats_cb,     pattern="^adm_stats$"),
-                CallbackQueryHandler(admin_manage_cb,    pattern="^adm_manage$"),
+                CallbackQueryHandler(admin_stats_cb,       pattern="^adm_stats$"),
+                CallbackQueryHandler(admin_list_users_cb,  pattern="^adm_list_users$"),
+                CallbackQueryHandler(admin_manage_cb,      pattern="^adm_manage$"),
                 CallbackQueryHandler(admin_ban_cb,       pattern="^adm_ban$"),
                 CallbackQueryHandler(admin_broadcast_cb, pattern="^adm_broadcast$"),
                 CallbackQueryHandler(admin_search_cb,    pattern="^adm_search$"),
