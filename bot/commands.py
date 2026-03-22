@@ -32,8 +32,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "*Cykdro Commands*\n\n"
         "/start      — Set up or update your profile\n"
         "/status     — View today's macro progress\n"
-        "/reset\_day — Clear all meals logged today\n"
-        "/delete\_me — Permanently delete your account\n"
+        "/reset_day — Clear all meals logged today\n"
+        "/delete_me — Permanently delete your account\n"
         "/help       — Show this message\n\n"
         "Just send a 📸 *photo* or type a *meal description* to log food!",
         parse_mode="Markdown",
