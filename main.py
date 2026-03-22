@@ -17,6 +17,7 @@ from telegram.ext import (
     filters,
 )
 
+from bot.admin import build_admin_handler
 from bot.commands import (
     delete_me_cancel_callback,
     delete_me_command,
@@ -36,7 +37,7 @@ from bot.meal_logging import (
     handle_text_meal,
 )
 from bot.onboarding import build_onboarding_handler
-from database.models import init_db
+from database.models import init_db, migrate_db
 
 load_dotenv()
 
@@ -50,6 +51,7 @@ logger = logging.getLogger(__name__)
 def main() -> None:
     # ── Database ──────────────────────────────────────────────────────────────
     init_db()
+    migrate_db()
     logger.info("Database initialised.")
 
     # ── Telegram application ──────────────────────────────────────────────────
@@ -60,6 +62,9 @@ def main() -> None:
     app.bot_data["openai_client"] = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     # ── Handlers — order matters ──────────────────────────────────────────────
+
+    # 0. Admin panel (must be first so it captures /admin before catch-alls)
+    app.add_handler(build_admin_handler())
 
     # 1. Onboarding conversation (/start … /cancel)
     app.add_handler(build_onboarding_handler())

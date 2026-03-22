@@ -26,7 +26,7 @@ from telegram.ext import (
 
 from bot.helpers import format_analysis, format_status, macro_bar
 from bot.keyboards import meal_confirmation_keyboard
-from database.crud import add_meal, get_today_totals, get_user
+from database.crud import add_meal, get_today_totals, get_user, is_user_active
 from services.openai_vision import analyse_food_image, analyse_food_text
 
 logger = logging.getLogger(__name__)
@@ -43,8 +43,11 @@ PENDING_KEY = "pending_meal"
 # ---------------------------------------------------------------------------
 
 async def _require_user(update: Update) -> bool:
-    """Return True if user is registered, else send a nudge message."""
-    user = get_user(update.effective_user.id)
+    """Return True if user is registered and not banned, else handle appropriately."""
+    user_id = update.effective_user.id
+    if not is_user_active(user_id):
+        return False  # silently ignore banned users
+    user = get_user(user_id)
     if user is None:
         await update.effective_message.reply_text(
             "Please run /start first to set up your profile."

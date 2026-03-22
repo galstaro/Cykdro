@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from sqlalchemy import (
-    Column, Integer, String, Float, DateTime, Date,
+    Boolean, Column, Integer, String, Float, DateTime, Date,
     ForeignKey, create_engine
 )
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
@@ -27,6 +27,9 @@ class User(Base):
     daily_protein_g = Column(Integer, nullable=False)
     daily_carbs_g = Column(Integer, nullable=False)
     daily_fat_g = Column(Integer, nullable=False)
+
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_pro = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -72,3 +75,19 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 def init_db() -> None:
     """Create all tables if they don't exist yet."""
     Base.metadata.create_all(bind=engine)
+
+
+def migrate_db() -> None:
+    """Add columns introduced after the initial schema (safe to run on every start)."""
+    from sqlalchemy import text
+    new_columns = [
+        "ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
+        "ALTER TABLE users ADD COLUMN is_pro    BOOLEAN NOT NULL DEFAULT 0",
+    ]
+    with engine.connect() as conn:
+        for stmt in new_columns:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                pass  # column already exists

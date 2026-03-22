@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database.models import Meal, SessionLocal, User
@@ -106,6 +107,65 @@ def delete_user(user_id: int) -> bool:
             return False
         db.delete(user)
         return True
+
+
+def is_user_active(user_id: int) -> bool:
+    """Returns False if the user exists and is banned."""
+    with get_db() as db:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return True
+        return bool(user.is_active)
+
+
+def set_user_active(user_id: int, active: bool) -> Optional[User]:
+    """Ban or unban a user. Returns the updated User or None if not found."""
+    with get_db() as db:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return None
+        user.is_active = active
+        db.flush()
+        db.refresh(user)
+        db.expunge(user)
+        return user
+
+
+def get_user_by_username(username: str) -> Optional[User]:
+    """Find a user by Telegram username (with or without leading @)."""
+    username = username.lstrip("@")
+    with get_db() as db:
+        user = db.query(User).filter(User.username == username).first()
+        if user is not None:
+            db.expunge(user)
+        return user
+
+
+def get_all_user_ids() -> list[int]:
+    """Return IDs of all active (non-banned) users."""
+    with get_db() as db:
+        rows = db.query(User.id).filter(User.is_active.is_(True)).all()
+        return [r[0] for r in rows]
+
+
+def get_stats() -> dict:
+    """Return system-wide stats for the admin dashboard."""
+    today = date.today()
+    with get_db() as db:
+        total_users = db.query(User).count()
+        users_today = (
+            db.query(User)
+            .filter(func.date(User.created_at) == today)
+            .count()
+        )
+        meals_today = db.query(Meal).filter(Meal.meal_date == today).count()
+        banned_users = db.query(User).filter(User.is_active.is_(False)).count()
+        return {
+            "total_users": total_users,
+            "users_today": users_today,
+            "meals_today": meals_today,
+            "banned_users": banned_users,
+        }
 
 
 def get_today_totals(user_id: int) -> dict:
