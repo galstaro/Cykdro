@@ -86,6 +86,28 @@ def add_meal(
         return meal
 
 
+def delete_today_meals(user_id: int) -> int:
+    """Delete all meals logged today. Returns the number of records deleted."""
+    today = date.today()
+    with get_db() as db:
+        deleted = (
+            db.query(Meal)
+            .filter(Meal.user_id == user_id, Meal.meal_date == today)
+            .delete(synchronize_session=False)
+        )
+        return deleted
+
+
+def delete_user(user_id: int) -> bool:
+    """Delete the user and all their meals (cascade). Returns True if user existed."""
+    with get_db() as db:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return False
+        db.delete(user)
+        return True
+
+
 def get_today_totals(user_id: int) -> dict:
     """Return summed macros for today."""
     today = date.today()

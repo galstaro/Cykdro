@@ -35,6 +35,33 @@ def goal_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def reset_day_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Yes, Reset My Day", callback_data="reset_day_confirm"),
+            InlineKeyboardButton("❌ Cancel", callback_data="reset_day_cancel"),
+        ]
+    ])
+
+
+def delete_me_warn_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🗑️ Delete Everything", callback_data="delete_me_warn"),
+            InlineKeyboardButton("❌ Cancel", callback_data="delete_me_cancel"),
+        ]
+    ])
+
+
+def delete_me_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("☠️ Yes, Delete My Account", callback_data="delete_me_confirm"),
+            InlineKeyboardButton("❌ Cancel", callback_data="delete_me_cancel"),
+        ]
+    ])
+
+
 def gender_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [

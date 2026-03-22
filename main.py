@@ -17,7 +17,17 @@ from telegram.ext import (
     filters,
 )
 
-from bot.commands import help_command, status_command
+from bot.commands import (
+    delete_me_cancel_callback,
+    delete_me_command,
+    delete_me_confirm_callback,
+    delete_me_warn_callback,
+    help_command,
+    reset_day_cancel_callback,
+    reset_day_command,
+    reset_day_confirm_callback,
+    status_command,
+)
 from bot.meal_logging import (
     build_meal_handler,
     cancel_meal,
@@ -61,9 +71,20 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(confirm_meal, pattern="^meal_confirm$"))
     app.add_handler(CallbackQueryHandler(cancel_meal,  pattern="^meal_cancel$"))
 
+    # 3b. Reset-day callbacks
+    app.add_handler(CallbackQueryHandler(reset_day_confirm_callback, pattern="^reset_day_confirm$"))
+    app.add_handler(CallbackQueryHandler(reset_day_cancel_callback,  pattern="^reset_day_cancel$"))
+
+    # 3c. Delete-me callbacks (two-step: warn → confirm)
+    app.add_handler(CallbackQueryHandler(delete_me_warn_callback,    pattern="^delete_me_warn$"))
+    app.add_handler(CallbackQueryHandler(delete_me_confirm_callback, pattern="^delete_me_confirm$"))
+    app.add_handler(CallbackQueryHandler(delete_me_cancel_callback,  pattern="^delete_me_cancel$"))
+
     # 4. Standalone commands
-    app.add_handler(CommandHandler("status", status_command))
-    app.add_handler(CommandHandler("help",   help_command))
+    app.add_handler(CommandHandler("status",     status_command))
+    app.add_handler(CommandHandler("help",       help_command))
+    app.add_handler(CommandHandler("reset_day",  reset_day_command))
+    app.add_handler(CommandHandler("delete_me",  delete_me_command))
 
     # 5. Media / text meal entry (lowest priority — catch-all for non-command messages)
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
